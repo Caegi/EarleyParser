@@ -150,7 +150,13 @@ def init(g, w):
 
     T = {}
 
-    pass
+    for i in range(len(w) + 1):
+        T[i] = [] # key: indice, value: list of items
+
+    for rule in g.rules:
+        if (rule.lhs.name == "S"):
+            item = Item(0, rule.lhs, [], rule.rhs) # rule lhs is always symS = Symbol("S)
+            T[0].append(item)
 
     return T
 
@@ -291,6 +297,8 @@ print(g1)
 print()
 for word in words:
     parse_earley(g1,word)
+    print("T[0] : ", parse_earley(g1,word)[0][0].__str__())
+    print("T[0] : ", parse_earley(g1, word)[0][1].__str__())
 
 
 """
