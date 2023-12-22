@@ -131,7 +131,7 @@ class TableCell:
 
     # Adds an item at the end of the t (+ prints some log), argument reason indicates the name of operations:"init","pred","scan","comp"
     def cAppend(self, item, reason=None):
-        if reason != None:
+        if reason is not None:
             reasonStr =  reason + ": "
         else:
             reasonStr = ""
@@ -151,25 +151,31 @@ def init(g, w):
     T = {}
 
     for i in range(len(w) + 1):
-        T[i] = [] # key: indice, value: list of items
+        T[i] = TableCell() # key: indice, value: TableCell (list of Item)
 
     for rule in g.rules:
         if (rule.lhs.name == "S"):
-            item = Item(0, rule.lhs, [], rule.rhs) # rule lhs is always symS = Symbol("S)
-            T[0].append(item)
+            item = Item(0, rule.lhs, [], rule.rhs) # rule lhs has to be the axiom
+            T[0].cAppend(item, "init")
 
     return T
 
-# Insert in the table any new items resulting from the pred operation for the iterm it
-def pred(g, it, T,j):
+# Insert in the table any new items resulting from the pred operation for the item it
+def pred(g, it, T, j):
     # g: Grammar
     # it: Item
     # T: table
     # j : index
 
-    pass
+    # fs_ad: Symbol (first symbol after the dot, it is a non-terminal symbol)
+    fs_ad = it.ad[0]
+    # iterate over rules
+    for r in g.rules:
+        # add an item with the rule r to the cell if the first symbol after the dot is on the left hand side of the rule
+        if r.lhs.name == fs_ad.name:
+            T[j].cAppend( Item (j, r.lhs, [], r.rhs), "pred" )
 
-# Insert in the table any new items resulting from the scan operation for the iterm it
+# Insert in the table any new items resulting from the scan operation for the item it
 def scan(it,T,j):
     # it: Item
     # T: table
@@ -177,7 +183,7 @@ def scan(it,T,j):
 
     pass
 
-# Insert in the table any possible new items resulting from the comp operation for the iterm it
+# Insert in the table any possible new items resulting from the comp operation for the item it
 def comp(it,T,j):
     # it: Item
     # T: table
@@ -207,8 +213,19 @@ def parse_earley(g, w):
     T = init(g,w)
 
     # Top-down analysis
-    pass
-
+    # iterate over cells in the chart T
+    for i_c in range(len(w) + 1):
+        i_it = 0
+        # iterate over items in the i_c-th cell in T
+        while ( i_it < len(T[i_c].c) ):
+            # PRED ?
+            # fs_ad: Symbol (first symbol after the dot)
+            # T[i_c].c[i_it]: Item (i_it-th item in the i_c-th cell in T)
+            if len(T[i_c].c[i_it].ad) > 0: # check if there is a symbol after the dot to solve index out of bounds problem next line
+                fs_ad = T[i_c].c[i_it].ad[0]
+                if g.isNonTerminal(fs_ad):
+                    pred(g, T[i_c].c[i_it], T, i_c)
+                i_it += 1
 
     if table_complete(g, w, T):
         print("Success")
@@ -296,24 +313,21 @@ print("GRAMMAR 1:")
 print(g1)
 print()
 for word in words:
+    print(f"Word: {word}")
     parse_earley(g1,word)
-    print("T[0] : ", parse_earley(g1,word)[0][0].__str__())
-    print("T[0] : ", parse_earley(g1, word)[0][1].__str__())
-
-
-"""
 
 
 print("GRAMMAR 2:")
 print(g2)
 print()
 for word in words:
+    print(f"Word: {word}")
     parse_earley(g2,word)
+
 
 print("GRAMMAR 3:")
 print(g3)
 print()
 for word in words:
     parse_earley(g3,word)
-"""
 
