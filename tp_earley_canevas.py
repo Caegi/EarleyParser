@@ -225,7 +225,7 @@ def parse_earley(g, w):
                 fs_ad = T[i_c].c[i_it].ad[0]
                 if g.isNonTerminal(fs_ad):
                     pred(g, T[i_c].c[i_it], T, i_c)
-                i_it += 1
+            i_it += 1
 
     if table_complete(g, w, T):
         print("Success")
