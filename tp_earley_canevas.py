@@ -171,8 +171,9 @@ def pred(g, it, T, j):
     fs_ad = it.ad[0]
     # iterate over rules
     for r in g.rules:
-        # add an item with the rule r to the cell if the first symbol after the dot is on the left hand side of the rule
+        # if the first symbol after the dot is on the left hand side of the rule r
         if r.lhs.name == fs_ad.name:
+            # add an item with the rule r to the cell
             T[j].cAppend( Item (j, r.lhs, [], r.rhs), "pred" )
 
 # Insert in the table any new items resulting from the scan operation for the item it
@@ -181,7 +182,14 @@ def scan(it,T,j):
     # T: table
     # j: index
 
-    pass
+    # iterate over items in j-th cell in T
+    for item in T[j].c:
+        if (item.ad[0].name == it.lhs.name):
+            item2add = item
+            if (len(item2add.bd) > 0):
+                S2add = item2add.bd.pop()
+                item2add.ad.insert(0, S2add)
+            T[j + 1].cAppend(item2add, "scan")
 
 # Insert in the table any possible new items resulting from the comp operation for the item it
 def comp(it,T,j):
@@ -213,24 +221,38 @@ def parse_earley(g, w):
     T = init(g,w)
 
     # Top-down analysis
-    # iterate over cells in the chart T
+    # iterate over cells in the chart T (i_c: index of the cell)
     for i_c in range(len(w) + 1):
         i_it = 0
         # iterate over items in the i_c-th cell in T
         while ( i_it < len(T[i_c].c) ):
+
+            # COMP ?
+            pass
+
             # PRED ?
             # fs_ad: Symbol (first symbol after the dot)
             # T[i_c].c[i_it]: Item (i_it-th item in the i_c-th cell in T)
-            if len(T[i_c].c[i_it].ad) > 0: # check if there is a symbol after the dot to solve index out of bounds problem next line
+            if len(T[i_c].c[i_it].ad) > 0: # check if there is a symbol after the dot to solve index out of bounds problem in the next line
                 fs_ad = T[i_c].c[i_it].ad[0]
                 if g.isNonTerminal(fs_ad):
                     pred(g, T[i_c].c[i_it], T, i_c)
+
+            # SCAN ?
+            # One cannot do the span operation in the last cell since there is no other possible cell as output
+            if (i_c < (len(w) + 1)):
+                if len(T[i_c].c[i_it].ad) > 0: # temp, while comp  is not added
+                    fs_ad = T[i_c].c[i_it].ad[0]
+                    # if first symbol after the dot is a terminal symbol, and it corresponds to the word at the index i_c
+                    if ((not (g.isNonTerminal(fs_ad))) and (w[i_c] == fs_ad.name)):
+                        scan(T[i_c].c[i_it], T, i_c)
+
             i_it += 1
 
     if table_complete(g, w, T):
         print("Success")
     else:
-        print("Failed parsing")
+        print("Failed parsing\n")
 
     return T
 
@@ -329,5 +351,6 @@ print("GRAMMAR 3:")
 print(g3)
 print()
 for word in words:
+    print(f"Word: {word}")
     parse_earley(g3,word)
 
