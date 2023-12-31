@@ -197,7 +197,16 @@ def comp(it,T,j):
     # T: table
     # j: index
 
-    pass
+    fs_lhs = it.lhs
+
+    # iterate over items in j-th cell in T
+    for item in T[it.i].c:
+        # if the item expects the current non-terminal symbol (fs_lhs) after the dot
+        if len(item.ad) > 0 and item.ad[0].name == fs_lhs.name:
+            # create a new item by moving the dot to the right
+            newItem = Item(j, item.lhs, item.bd + [fs_lhs], item.ad[1:])
+            # add the new item to the chart
+            T[j].cAppend(newItem, "comp")
 
 
 
@@ -207,12 +216,65 @@ def table_complete(g, w, T):
     # w: word
     # T: table
 
-    pass
+    final_cell = T[len(w)]  # Get the final cell in the parsing table
+
+    # Check if there is an item in the final cell indicating successful parsing
+    for item in final_cell.c:
+        if item.lhs == g.axiom and item.ad == [] and item.i == 0:
+            return True
 
     return False
 
+
+# Parse the word w for the grammar g return the parsing table at the end of the algorithm
 # Parse the word w for the grammar g return the parsing table at the end of the algorithm
 def parse_earley(g, w):
+    # g: Grammar
+    # w: word
+
+    # Initialisation
+    T = init(g, w)
+
+    # Top-down analysis
+    # iterate over cells in the chart T (i_c: index of the cell)
+    for i_c in range(len(w) + 1):
+        i_it = 0
+        # iterate over items in the i_c-th cell in T
+        while i_it < len(T[i_c].c):
+
+            # COMP
+            for i_comp in range(i_c + 1, len(w) + 1):
+                # iterate over items in the i_it-th cell in T if i_it is within the valid range
+                if i_it < len(T[i_c].c):
+                    for item in T[i_it].c:
+                        comp(item, T, i_comp)
+
+            # PRED
+            # fs_ad: Symbol (first symbol after the dot)
+            # T[i_c].c[i_it]: Item (i_it-th item in the i_c-th cell in T)
+            if len(T[i_c].c[i_it].ad) > 0:  # check if there is a symbol after the dot to solve index out of bounds problem in the next line
+                fs_ad = T[i_c].c[i_it].ad[0]
+                if g.isNonTerminal(fs_ad):
+                    pred(g, T[i_c].c[i_it], T, i_c)
+
+            # SCAN
+            # One cannot do the span operation in the last cell since there is no other possible cell as output
+            if i_c < len(w) + 1:
+                if len(T[i_c].c[i_it].ad) > 0:  # temp, while comp  is not added
+                    fs_ad = T[i_c].c[i_it].ad[0]
+                    # if first symbol after the dot is a terminal symbol, and it corresponds to the word at the index i_c
+                    if (not g.isNonTerminal(fs_ad)) and (w[i_c] == fs_ad.name):
+                        scan(T[i_c].c[i_it], T, i_c)
+
+            i_it += 1
+
+    if table_complete(g, w, T):
+        print("Success")
+    else:
+        print("Failed parsing\n")
+
+    return T
+
     # g: Grammar
     # w: word
 
@@ -228,7 +290,10 @@ def parse_earley(g, w):
         while ( i_it < len(T[i_c].c) ):
 
             # COMP ?
-            pass
+            for i_comp in range(i_c + 1, len(w) + 1):
+                # iterate over items in the i_it-th cell in T
+                for item in T[i_it].c:
+                    comp(item, T, i_comp)
 
             # PRED ?
             # fs_ad: Symbol (first symbol after the dot)
@@ -331,6 +396,8 @@ g3 = Grammar(
 # --------------
 words = ["aab", "b", "aaaaab", "abab"]
 
+print(init(g1,"abc"))
+
 print("GRAMMAR 1:")
 print(g1)
 print()
@@ -353,4 +420,6 @@ print()
 for word in words:
     print(f"Word: {word}")
     parse_earley(g3,word)
+
+
 
