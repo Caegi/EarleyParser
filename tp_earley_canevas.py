@@ -85,6 +85,7 @@ class Grammar:
 
         return Symbol(name)
 
+    # returns a Bolean value if the symbol as input is a non-terminal symbol
     def isNonTerminal(self, symbol):
         # symbol: Symbol
 
@@ -151,7 +152,7 @@ def init(g, w):
     T = {}
 
     for i in range(len(w) + 1):
-        T[i] = TableCell() # key: indice, value: TableCell (list of Item)
+        T[i] = TableCell() # key: indice, value: TableCell
 
     for rule in g.rules:
         if (rule.lhs.name == "S"):
@@ -183,14 +184,15 @@ def scan(it,T,j):
     # j: index
 
     # copy the item to avoid modifying the original item
+    # it2add: Item
     it2add = it
 
-    # fs_ad: Symbol
+    # fs_ad: Symbol (store the first symbol after the dot)
     fs_ad = it2add.ad[0]
     it2add.bd.append(fs_ad)
     it2add.ad = it2add.ad[1:]
 
-    # add it to the chart
+    # add the new item to the chart
     T[j + 1].cAppend(it2add, "scan")
 
 # Insert in the table any possible new items resulting from the comp operation for the item it
@@ -200,12 +202,13 @@ def comp(it,T,j):
     # j: index
 
     k = 0
-    # iterate over items in the cell of the indice of the current item in T
+    # iterate over items in the cell of the indice of the current item it in T
+    # T[it.i].c: list[Item]
     while k < len(T[it.i].c):
         # compItem: Item (item that is being analysed in the comp operation)
         compItem = T[it.i].c[k]
 
-        # if the item expects the current non-terminal symbol (fs_lhs) after the dot
+        # if the item expects the current non-terminal symbol (it.lhs) after the dot
         if ( (len(compItem.ad) > 0) and (compItem.ad[0].name == it.lhs.name) ):
             # create a new item by moving the dot to the right
             newItem = Item(compItem.i, compItem.lhs, compItem.bd + [it.lhs], compItem.ad[1:])
@@ -213,8 +216,6 @@ def comp(it,T,j):
             T[j].cAppend(newItem, "comp")
 
         k += 1
-
-
 
 # Return True if the analysis is successful, otherwise False 
 def table_complete(g, w, T):
@@ -240,14 +241,14 @@ def parse_earley(g, w):
     T = init(g, w)
 
     # Top-down analysis
-    # iterate over cells in the chart T (i_c: index of the cell)
+    # iterate over cells in the chart T (j: index of the cell)
     for j in range(len(w) + 1):
-        k1 = 0
-        # iterate over items in the i_c-th cell in T
+        k = 0
+        # iterate over items in the j-th cell in the chart T
         # T[i_c].c: list[item]
-        while k1 < len(T[j].c):
+        while k < len(T[j].c):
             # currentItem: Item (item that is being analysed in the main loop)
-            currentItem = T[j].c[k1]
+            currentItem = T[j].c[k]
 
             # COMP
             if len(currentItem.ad) == 0:
@@ -255,17 +256,18 @@ def parse_earley(g, w):
 
             # PRED
             # check if first symbol after the dot is a non-terminal symbol
+            # currentItem.ad[0]: Symbol
             elif g.isNonTerminal(currentItem.ad[0]):
                 pred(g, currentItem, T, j)
 
             # SCAN
             elif j < len(w):  # to make sure to not trigger the scan operation in the last cell
                 # We know the first symbol after the dot is a terminal symbol since it is the last option left
-                # Check if it corresponds to the word at the index i_c
+                # Check if it corresponds to the character at index j
                 if (w[j] == currentItem.ad[0].name):
                     scan(currentItem, T, j)
 
-            k1 += 1
+            k += 1
 
     if table_complete(g, w, T):
         print("Success")
