@@ -182,14 +182,16 @@ def scan(it,T,j):
     # T: table
     # j: index
 
-    # iterate over items in j-th cell in T
-    for item in T[j].c:
-        if (item.ad[0].name == it.lhs.name):
-            item2add = item
-            if (len(item2add.bd) > 0):
-                S2add = item2add.bd.pop()
-                item2add.ad.insert(0, S2add)
-            T[j + 1].cAppend(item2add, "scan")
+    # copy the item to avoid modifying the original item
+    it2add = it
+
+    # fs_ad: Symbol
+    fs_ad = it2add.ad[0]
+    it2add.bd.append(fs_ad)
+    it2add.ad = it2add.ad[1:]
+
+    # add it to the chart
+    T[j + 1].cAppend(it2add, "scan")
 
 # Insert in the table any possible new items resulting from the comp operation for the item it
 def comp(it,T,j):
@@ -197,16 +199,20 @@ def comp(it,T,j):
     # T: table
     # j: index
 
-    fs_lhs = it.lhs
+    k = 0
+    # iterate over items in the cell of the indice of the current item in T
+    while k < len(T[it.i].c):
+        # compItem: Item (item that is being analysed in the comp operation)
+        compItem = T[it.i].c[k]
 
-    # iterate over items in j-th cell in T
-    for item in T[it.i].c:
         # if the item expects the current non-terminal symbol (fs_lhs) after the dot
-        if len(item.ad) > 0 and item.ad[0].name == fs_lhs.name:
+        if ( (len(compItem.ad) > 0) and (compItem.ad[0].name == it.lhs.name) ):
             # create a new item by moving the dot to the right
-            newItem = Item(j, item.lhs, item.bd + [fs_lhs], item.ad[1:])
+            newItem = Item(compItem.i, compItem.lhs, compItem.bd + [it.lhs], compItem.ad[1:])
             # add the new item to the chart
             T[j].cAppend(newItem, "comp")
+
+        k += 1
 
 
 
@@ -225,8 +231,6 @@ def table_complete(g, w, T):
 
     return False
 
-
-# Parse the word w for the grammar g return the parsing table at the end of the algorithm
 # Parse the word w for the grammar g return the parsing table at the end of the algorithm
 def parse_earley(g, w):
     # g: Grammar
@@ -237,82 +241,31 @@ def parse_earley(g, w):
 
     # Top-down analysis
     # iterate over cells in the chart T (i_c: index of the cell)
-    for i_c in range(len(w) + 1):
-        i_it = 0
+    for j in range(len(w) + 1):
+        k1 = 0
         # iterate over items in the i_c-th cell in T
-        while i_it < len(T[i_c].c):
+        # T[i_c].c: list[item]
+        while k1 < len(T[j].c):
+            # currentItem: Item (item that is being analysed in the main loop)
+            currentItem = T[j].c[k1]
 
             # COMP
-            for i_comp in range(i_c + 1, len(w) + 1):
-                # iterate over items in the i_it-th cell in T if i_it is within the valid range
-                if i_it < len(T[i_c].c):
-                    for item in T[i_it].c:
-                        comp(item, T, i_comp)
+            if len(currentItem.ad) == 0:
+                comp(currentItem, T, j)
 
             # PRED
-            # fs_ad: Symbol (first symbol after the dot)
-            # T[i_c].c[i_it]: Item (i_it-th item in the i_c-th cell in T)
-            if len(T[i_c].c[i_it].ad) > 0:  # check if there is a symbol after the dot to solve index out of bounds problem in the next line
-                fs_ad = T[i_c].c[i_it].ad[0]
-                if g.isNonTerminal(fs_ad):
-                    pred(g, T[i_c].c[i_it], T, i_c)
+            # check if first symbol after the dot is a non-terminal symbol
+            elif g.isNonTerminal(currentItem.ad[0]):
+                pred(g, currentItem, T, j)
 
             # SCAN
-            # One cannot do the span operation in the last cell since there is no other possible cell as output
-            if i_c < len(w) + 1:
-                if len(T[i_c].c[i_it].ad) > 0:  # temp, while comp  is not added
-                    fs_ad = T[i_c].c[i_it].ad[0]
-                    # if first symbol after the dot is a terminal symbol, and it corresponds to the word at the index i_c
-                    if (not g.isNonTerminal(fs_ad)) and (w[i_c] == fs_ad.name):
-                        scan(T[i_c].c[i_it], T, i_c)
+            elif j < len(w):  # to make sure to not trigger the scan operation in the last cell
+                # We know the first symbol after the dot is a terminal symbol since it is the last option left
+                # Check if it corresponds to the word at the index i_c
+                if (w[j] == currentItem.ad[0].name):
+                    scan(currentItem, T, j)
 
-            i_it += 1
-
-    if table_complete(g, w, T):
-        print("Success")
-    else:
-        print("Failed parsing\n")
-
-    return T
-
-    # g: Grammar
-    # w: word
-
-
-    # Initialisation
-    T = init(g,w)
-
-    # Top-down analysis
-    # iterate over cells in the chart T (i_c: index of the cell)
-    for i_c in range(len(w) + 1):
-        i_it = 0
-        # iterate over items in the i_c-th cell in T
-        while ( i_it < len(T[i_c].c) ):
-
-            # COMP ?
-            for i_comp in range(i_c + 1, len(w) + 1):
-                # iterate over items in the i_it-th cell in T
-                for item in T[i_it].c:
-                    comp(item, T, i_comp)
-
-            # PRED ?
-            # fs_ad: Symbol (first symbol after the dot)
-            # T[i_c].c[i_it]: Item (i_it-th item in the i_c-th cell in T)
-            if len(T[i_c].c[i_it].ad) > 0: # check if there is a symbol after the dot to solve index out of bounds problem in the next line
-                fs_ad = T[i_c].c[i_it].ad[0]
-                if g.isNonTerminal(fs_ad):
-                    pred(g, T[i_c].c[i_it], T, i_c)
-
-            # SCAN ?
-            # One cannot do the span operation in the last cell since there is no other possible cell as output
-            if (i_c < (len(w) + 1)):
-                if len(T[i_c].c[i_it].ad) > 0: # temp, while comp  is not added
-                    fs_ad = T[i_c].c[i_it].ad[0]
-                    # if first symbol after the dot is a terminal symbol, and it corresponds to the word at the index i_c
-                    if ((not (g.isNonTerminal(fs_ad))) and (w[i_c] == fs_ad.name)):
-                        scan(T[i_c].c[i_it], T, i_c)
-
-            i_it += 1
+            k1 += 1
 
     if table_complete(g, w, T):
         print("Success")
@@ -396,13 +349,11 @@ g3 = Grammar(
 # --------------
 words = ["aab", "b", "aaaaab", "abab"]
 
-print(init(g1,"abc"))
-
 print("GRAMMAR 1:")
 print(g1)
 print()
 for word in words:
-    print(f"Word: {word}")
+    print(f"\nWord: {word}")
     parse_earley(g1,word)
 
 
@@ -410,7 +361,7 @@ print("GRAMMAR 2:")
 print(g2)
 print()
 for word in words:
-    print(f"Word: {word}")
+    print(f"\nWord: {word}")
     parse_earley(g2,word)
 
 
@@ -418,7 +369,7 @@ print("GRAMMAR 3:")
 print(g3)
 print()
 for word in words:
-    print(f"Word: {word}")
+    print(f"\nWord: {word}")
     parse_earley(g3,word)
 
 
