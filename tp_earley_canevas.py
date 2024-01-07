@@ -223,6 +223,7 @@ def table_complete(g, w, T):
     # w: word
     # T: table
 
+    # final_cell: TableCell
     final_cell = T[len(w)]  # Get the final cell in the parsing table
 
     # Check if there is an item in the final cell indicating successful parsing
@@ -263,7 +264,8 @@ def parse_earley(g, w):
             # SCAN
             elif j < len(w):  # to make sure to not trigger the scan operation in the last cell
                 # We know the first symbol after the dot is a terminal symbol since it is the last option left
-                # Check if it corresponds to the character at index j
+                # (either nothing after dot, or a non-terminal or a terminal symbol)
+                # Check if it corresponds to the character of the word to parse w at index j
                 if (w[j] == currentItem.ad[0].name):
                     scan(currentItem, T, j)
 
