@@ -1,17 +1,6 @@
-# Rahim & Jean Thomas
+# authors: Rahim & Jean Thomas
 #! /usr/bin/python
 # -*- encoding: utf8 -*-
-
-# -----
-# TP Implementation of the Earley algorithm (with pred function)
-#
-# 1) Familiarize yourself with the code.
-# 2) Implement the incomplete functions (those containing the keyword "pass").
-#
-# You are of course allowed to define auxiliary functions or add methods to classes,
-# but all your code must be carefully commented:
-# - the role or return value of each function must be specified, as well as how it works
-# - any variable creation must be accompanied by a comment on its role/meaning.
 
 class Symbol:
     # field name: String
